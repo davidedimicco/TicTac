@@ -96,9 +96,6 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   bool _isSmallBoardFull(List<int> board) {
-    // if (bigIndex == null) {
-    //   return false;
-    // }
     for (int i = 0; i < 9; i++) {
       if (board[i] == 0) {
         return false;
@@ -115,7 +112,7 @@ Widget _buildSmallBoard(int bigIndex, BoxConstraints constraints) {
       itemBuilder: (BuildContext context, int smallIndex) {
         bool isClickable = (_winner == 0) && (_bigBoard[bigIndex][smallIndex] == 0) && ((_activeSmallBoard == null ? true : _isSmallBoardFull(_bigBoard[_activeSmallBoard!])) || _activeSmallBoard == bigIndex);
         return GestureDetector(
-          onTap: isClickable ? () => _handleTap(bigIndex, smallIndex) : null,
+          onTap: isClickable ? () => _handleTap(context, bigIndex, smallIndex) : null,
           child: Container(
             decoration: BoxDecoration(
               border: Border.all(color: Colors.black),
@@ -150,7 +147,7 @@ Widget _buildSmallBoard(int bigIndex, BoxConstraints constraints) {
   }
 
 
-  void _handleTap(int bigIndex, int smallIndex) {
+  void _handleTap(BuildContext context, int bigIndex, int smallIndex) {
     if (_winner == 0 &&
         _bigBoard[bigIndex][smallIndex] == 0 &&
         ((_activeSmallBoard == null ? true : _isSmallBoardFull(_bigBoard[_activeSmallBoard!])) || _activeSmallBoard == bigIndex)) {
@@ -161,6 +158,26 @@ Widget _buildSmallBoard(int bigIndex, BoxConstraints constraints) {
         if (_smallBoardWinners[bigIndex] == 0) {
           _smallBoardWinners[bigIndex] = _checkWin(_bigBoard[bigIndex], _currentPlayer);
           _winner = _checkWin(_smallBoardWinners, _currentPlayer);
+          if (_winner != 0) {
+            Text dialog_text = (_winner == 1) ? Text('Player X wins!') : ((_winner == 2) ? Text('Player O wins!') : Text('This is a draw!'));
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: Text('Game Over'),
+                  content: dialog_text,
+                  actions: [
+                    TextButton(
+                      child: Text('OK'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                );
+              },
+            );
+          }
         }
 
         _currentPlayer = _currentPlayer == 1 ? 2 : 1;
@@ -205,6 +222,7 @@ Widget _buildSmallBoard(int bigIndex, BoxConstraints constraints) {
       _smallBoardWinners = List.generate(9, (_) => 0);
       _currentPlayer = 1;
       _activeSmallBoard = null;
+      _winner = 0;
     });
   }
 }
