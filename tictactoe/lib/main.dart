@@ -32,6 +32,7 @@ class _GameBoardState extends State<GameBoard> {
   List<int> _smallBoardWinners = List.generate(9, (_) => 0);
   int _currentPlayer = 1;
   int? _activeSmallBoard;
+  int _winner = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -83,15 +84,38 @@ class _GameBoardState extends State<GameBoard> {
     );
   }
 
-  Widget _buildSmallBoard(int bigIndex, BoxConstraints constraints) {
+  bool _isGameStarted() {
+    for (int i = 0; i < 9; i++) {
+      for (int j = 0; j < 9; j++) {
+        if (_bigBoard[i][j] != 0) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  bool _isSmallBoardFull(List<int> board) {
+    // if (bigIndex == null) {
+    //   return false;
+    // }
+    for (int i = 0; i < 9; i++) {
+      if (board[i] == 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+Widget _buildSmallBoard(int bigIndex, BoxConstraints constraints) {
+  bool isGameStarted = _isGameStarted();
     return GridView.builder(
       itemCount: 9,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
       itemBuilder: (BuildContext context, int smallIndex) {
+        bool isClickable = (_winner == 0) && (_bigBoard[bigIndex][smallIndex] == 0) && ((_activeSmallBoard == null ? true : _isSmallBoardFull(_bigBoard[_activeSmallBoard!])) || _activeSmallBoard == bigIndex);
         return GestureDetector(
-          onTap: _activeSmallBoard == null || _activeSmallBoard == bigIndex
-              ? () => _handleTap(bigIndex, smallIndex)
-              : null,
+          onTap: isClickable ? () => _handleTap(bigIndex, smallIndex) : null,
           child: Container(
             decoration: BoxDecoration(
               border: Border.all(color: Colors.black),
@@ -102,7 +126,9 @@ class _GameBoardState extends State<GameBoard> {
                     ? 'X'
                     : _bigBoard[bigIndex][smallIndex] == 2
                         ? 'O'
-                        : '',
+                        : isClickable && isGameStarted
+                            ? '?'
+                            : '',
                 style: TextStyle(
                   fontSize: constraints.maxWidth / 27,
                   fontWeight: FontWeight.bold,
@@ -110,7 +136,9 @@ class _GameBoardState extends State<GameBoard> {
                       ? Colors.blue
                       : _bigBoard[bigIndex][smallIndex] == 2
                           ? Colors.red
-                          : Colors.transparent,
+                          : isClickable && isGameStarted
+                              ? Colors.grey
+                              : Colors.transparent,
                 ),
               ),
             ),
@@ -121,46 +149,54 @@ class _GameBoardState extends State<GameBoard> {
     );
   }
 
+
   void _handleTap(int bigIndex, int smallIndex) {
-    if (_bigBoard[bigIndex][smallIndex] == 0 && _smallBoardWinners[bigIndex] == 0) {
+    if (_winner == 0 &&
+        _bigBoard[bigIndex][smallIndex] == 0 &&
+        ((_activeSmallBoard == null ? true : _isSmallBoardFull(_bigBoard[_activeSmallBoard!])) || _activeSmallBoard == bigIndex)) {
       setState(() {
         _bigBoard[bigIndex][smallIndex] = _currentPlayer;
         _activeSmallBoard = smallIndex;
-        if (_checkSmallBoardWin(bigIndex, _currentPlayer)) {
-          _smallBoardWinners[bigIndex] = _currentPlayer;
+
+        if (_smallBoardWinners[bigIndex] == 0) {
+          _smallBoardWinners[bigIndex] = _checkWin(_bigBoard[bigIndex], _currentPlayer);
+          _winner = _checkWin(_smallBoardWinners, _currentPlayer);
         }
+
         _currentPlayer = _currentPlayer == 1 ? 2 : 1;
       });
     }
   }
 
-  bool _checkSmallBoardWin(int bigIndex, int player) {
+  int _checkWin(List<int> board, int player) {
     for (int i = 0; i < 3; i++) {
-      if (_bigBoard[bigIndex][i * 3] == player &&
-          _bigBoard[bigIndex][i * 3 + 1] == player &&
-          _bigBoard[bigIndex][i * 3 + 2] == player) {
-        return true;
+      if (board[i * 3] == player &&
+          board[i * 3 + 1] == player &&
+          board[i * 3 + 2] == player) {
+        return player;
       }
-      if (_bigBoard[bigIndex][i] == player &&
-          _bigBoard[bigIndex][i + 3] == player &&
-          _bigBoard[bigIndex][i + 6] == player) {
-        return true;
+      if (board[i] == player &&
+          board[i + 3] == player &&
+          board[i + 6] == player) {
+        return player;
       }
     }
 
-    if (_bigBoard[bigIndex][0] == player &&
-        _bigBoard[bigIndex][4] == player &&
-        _bigBoard[bigIndex][8] == player) {
-      return true;
+    if (board[0] == player &&
+        board[4] == player &&
+        board[8] == player) {
+      return player;
     }
 
-    if (_bigBoard[bigIndex][2] == player &&
-        _bigBoard[bigIndex][4] == player &&
-        _bigBoard[bigIndex][6] == player) {
-      return true;
+    if (board[2] == player &&
+        board[4] == player &&
+        board[6] == player) {
+      return player;
     }
-
-    return false;
+    if (_isSmallBoardFull(board)){
+      return 8;
+    }
+    return 0;
   }
 
   void _resetGame() {
